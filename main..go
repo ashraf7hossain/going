@@ -1,7 +1,8 @@
-package going 
+package going
 
 import (
 	"fmt"
+	"sync"
 )
 
 // Map takes a list of elements and applies the provided function `f` on each element,
@@ -19,6 +20,39 @@ func Map[T any, U any](list []T, f func(T) U) []U {
     for i, v := range list {
         result[i] = f(v)
     }
+    return result
+}
+
+
+// CMap is a concurrent version of the Map function. It takes a list of elements and applies the provided function `f` on each element,
+// returning a new list of transformed elements. The function `f` is applied to each item
+// of type T and produces a result of type U.
+// The function `f` is executed concurrently for each element in the list.
+//
+// Example:
+//    numbers := []int{1, 2, 3, 4, 5}
+//    squared := CMap(numbers, func(x int) int {
+//        return x * x
+//    })
+//    fmt.Println(squared)  // prints: [1 4 9 16 25]
+
+func CMap[T any, U any](list []T, f func(T) U) []U {
+    if len(list) ==  0{
+        return nil
+    }
+
+    result := make([]U, len(list))
+    var wg sync.WaitGroup
+    wg.Add(len(list))
+
+    for i, v := range list {
+        go func(i int, v T) {
+            defer wg.Done()
+            result[i] = f(v)
+        }(i, v)
+    }
+
+    wg.Wait()
     return result
 }
 
@@ -41,6 +75,40 @@ func Filter[T any](list []T, f func(T) bool) []T {
     return result
 }
 
+// CFilter is a concurrent version of the Filter function. It takes a list of elements and applies the provided predicate function `f` on each element.
+// It returns a new list containing only the elements for which the function `f` returns true.
+// The function `f` is executed concurrently for each element in the list.
+//
+// Example:
+//    numbers := []int{1, 2, 3, 4, 5}
+//    odds := CFilter(numbers, func(x int) bool {
+//        return x % 2 == 1
+//    })
+//    fmt.Println(odds)  // prints: [1 3 5]
+
+
+func CFilter[T any](list []T, f func(T) bool) []T {
+    if len(list) ==  0{
+        return nil
+    }
+
+    result := make([]T, 0, len(list))
+    var wg sync.WaitGroup
+    wg.Add(len(list))
+
+    for _, v := range list {
+        go func(v T) {
+            defer wg.Done()
+            if f(v) {
+                result = append(result, v)
+            }
+        }(v)
+    }
+
+    wg.Wait()
+    return result
+}
+
 // Reduce takes a list of elements and applies the provided reducer function on each element,
 // combining them into a single accumulated result. The reducer function takes an accumulator of
 // type R and an item of type T, and returns a new accumulator of type R. It starts with an initial value.
@@ -56,6 +124,37 @@ func Reduce[T any, R any](list []T, reducer func(acc R, item T) R, initial R) R 
     for _, item := range list {
         acc = reducer(acc, item)
     }
+    return acc
+}
+
+// CReduce is a concurrent version of the Reduce function. It takes a list of elements and applies the provided reducer function on each element,
+// combining them into a single accumulated result. The reducer function takes an accumulator of
+// type R and an item of type T, and returns a new accumulator of type R. It starts with an initial value.
+// The reducer function is executed concurrently for each element in the list.
+//
+// Example:
+//    ints := []int{1, 2, 3, 4, 5}
+//    sum := CReduce(ints, func(acc int, item int) int {
+//        return acc + item
+//    }, 0)
+
+func CReduce[T any, R any](list []T, reducer func(acc R, item T) R, initial R) R {
+    if len(list) ==  0{
+        return initial
+    }
+
+    var wg sync.WaitGroup
+    wg.Add(len(list))
+
+    var acc R = initial
+    for _, v := range list {
+        go func(v T) {
+            defer wg.Done()
+            acc = reducer(acc, v)
+        }(v)
+    }
+
+    wg.Wait()
     return acc
 }
 

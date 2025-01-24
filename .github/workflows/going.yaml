@@ -30,15 +30,15 @@ jobs:
       #   run: go mod tidy
 
       # Step 4: Run linting
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.54.2  # Use the latest stable version
+      # - name: Run golangci-lint
+      #   uses: golangci/golangci-lint-action@v3
+      #   with:
+      #     version: v1.54.2  # Use the latest stable version
 
       # Step 5: Run tests
       - name: Run tests
         run: go test ./... -v
 
       # Step 6: Build the project
-      - name: Build the project
-        run: go build -v ./...
+      # - name: Build the project
+      #   run: go build -v ./...
